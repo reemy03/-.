@@ -541,10 +541,7 @@
                             class="text-slate-600 text-xs leading-relaxed font-medium bg-slate-50 p-3 rounded-xl"></p>
                     </div>
 
-                    <button onclick="startNfcAnimation()"
-                        class="w-full bg-slate-800 text-white py-3.5 rounded-2xl text-xs font-bold shadow-lg hover:bg-slate-700 transition flex items-center justify-center gap-2 mb-3 border border-slate-700">
-                        <i class="fa-solid fa-nfc-symbol"></i> NFCカード出力
-                    </button>
+                    <!-- (NFC Button Removed) -->
 
                     <div class="flex gap-3 w-full animate-fade-up" style="animation-delay: 0.4s;">
                         <a id="revealDownload" href="#" download
@@ -706,11 +703,11 @@
         }
 
         function showUnlockBanner(capsule) {
-            const app = document.querySelector('.relative.flex.flex-col'); // Main app container
+            const app = document.getElementById('app-container'); // Global container
             if (!app) return;
 
             const banner = document.createElement('div');
-            banner.className = "absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-sky-100 p-4 z-[60] animate-fade-down flex items-center gap-3 cursor-pointer transform transition active:scale-95";
+            banner.className = "absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-sky-100 p-4 z-[999] animate-fade-down flex items-center gap-3 cursor-pointer transform transition active:scale-95";
             banner.onclick = () => {
                 banner.remove();
                 // Navigate to home to see the unlocked capsule (or open specific view if implemented)
@@ -778,6 +775,29 @@
         function loadCapsules() {
             const data = localStorage.getItem('timeCapsules_v5');
             if (data) capsules = JSON.parse(data);
+
+            // --- Demo Data Injection ---
+            const demoId = 'demo-friend-capsule';
+            if (!capsules.find(c => c.id === demoId)) {
+                // Remove any old demo capsules to ensure clean state if needed, or just append
+                const demoCapsule = {
+                    id: demoId,
+                    title: "再会記念カプセル",
+                    message: "久しぶりに会えて嬉しい！また遊ぼうね。",
+                    unlockDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year later
+                    createdAt: new Date().toISOString(),
+                    theme: "theme-locked",
+                    images: [
+                        "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+                        "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                    ],
+                    tags: ["happy", "friends"],
+                    isOpened: false,
+                    unlockCondition: 'meet'
+                };
+                capsules.unshift(demoCapsule); // Add to top
+                saveCapsules();
+            }
         }
 
         function saveCapsules() {
@@ -1378,10 +1398,6 @@
                 content.innerHTML = `
                     <div class="space-y-6 animate-fade-up">
                         <div class="grid grid-cols-2 gap-3">
-                            <button onclick="setSealDate(calcDate(0,0,1))" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-sky-300 hover:shadow-md transition text-left group">
-                                <div class="text-xs text-slate-400 font-bold mb-1">明日</div>
-                                <div class="text-sm font-bold text-slate-700 group-hover:text-sky-500">1日後</div>
-                            </button>
                             <button onclick="setSealDate(calcDate(0,1,0))" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-sky-300 hover:shadow-md transition text-left group">
                                 <div class="text-xs text-slate-400 font-bold mb-1">来月</div>
                                 <div class="text-sm font-bold text-slate-700 group-hover:text-sky-500">1ヶ月後</div>
@@ -2272,9 +2288,9 @@
             container.innerHTML = `
                 <div class="pt-12 px-6 mb-4 animate-fade-up">
                     <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2">
-                        <i class="fa-solid fa-user-group text-sky-400"></i> APEX友達リスト
+                        <i class="fa-solid fa-user-group text-sky-400"></i> 友達リスト
                     </h2>
-                    <p class="text-[10px] text-slate-400 pl-1">APEXカプセルを交換した友達</p>
+                    <p class="text-[10px] text-slate-400 pl-1">カプセルを共有した友達</p>
                 </div>
                 
                 <div class="px-4 mb-6 animate-fade-up" style="animation-delay: 0.1s;">
@@ -2350,12 +2366,17 @@
             setTimeout(() => {
                 showToast('認証成功！再会を確認しました', false);
 
-                // Find a locked capsule to unlock (or create specific logic)
-                // For demo, we'll try to find a locked capsule that isn't opened yet
-                const lockedCapsule = capsules.find(c => !c.isOpened && new Date() < new Date(c.unlockDate));
+                // Demo Logic: Targeted Unlock
+                const demoId = 'demo-friend-capsule';
+                let lockedCapsule = capsules.find(c => c.id === demoId);
+
+                // Fallback: If no demo capsule, find any locked one
+                if (!lockedCapsule) {
+                    lockedCapsule = capsules.find(c => !c.isOpened && new Date() < new Date(c.unlockDate));
+                }
 
                 if (lockedCapsule) {
-                    // Force unlock it for demo
+                    // Unlock it
                     lockedCapsule.unlockDate = new Date().toISOString();
                     saveCapsules();
 
